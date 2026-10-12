@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2F7D6E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Diario di gravidanza</title>
+</head><body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+/* Layout: una colonna morbida, anello delle settimane in apertura, quattro schede in basso (Oggi, Andamento, Agenda, Visita). */
+:root{
+  --bg:#F1F6F4;
+  --surface:#FFFFFF;
+  --surface2:#E8F1EE;
+  --ink:#1E2B33;
+  --muted:#5B6C74;
+  --line:#D3E1DC;
+  --accent:#2F7D6E;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#D6EBE5;
+  --warm:#D9775A;
+  --warn:#8A5300;
+  --warn-soft:#FFEFD1;
+  --alert:#A3201A;
+  --alert-soft:#FDE3E0;
+  --display:'Bricolage Grotesque','Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1719;--surface:#172125;--surface2:#1E2B30;--ink:#E6EFEC;--muted:#9DB0B2;--line:#2A393E;
+    --accent:#6FCDB8;--accent-ink:#0B1F1A;--accent-soft:#1F3A35;--warm:#F0A58B;
+    --warn:#F0C060;--warn-soft:#3A2E14;--alert:#FF9A92;--alert-soft:#3D1F1D;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1719;--surface:#172125;--surface2:#1E2B30;--ink:#E6EFEC;--muted:#9DB0B2;--line:#2A393E;
+  --accent:#6FCDB8;--accent-ink:#0B1F1A;--accent-soft:#1F3A35;--warm:#F0A58B;
+  --warn:#F0C060;--warn-soft:#3A2E14;--alert:#FF9A92;--alert-soft:#3D1F1D;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+.app{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:18px 120px}
+h1,h2,h3,p,dl,dd,dt{margin:0}
+h2{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.15;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:18px;line-height:1.2}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px}
+
+/* testata */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.brand{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.01em}
+.sync{font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:7px;min-width:0}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.sync[data-s="ok"]::before{background:var(--accent)}
+.sync[data-s="off"],.sync[data-s="err"]{color:var(--warn)}
+.sync[data-s="off"]::before,.sync[data-s="err"]::before{background:var(--warn)}
+
+/* anello */
+.hero{display:flex;flex-wrap:wrap;align-items:center;gap:20px 28px;margin-bottom:14px}
+.ring{width:188px;height:188px;flex:none}
+.ring-track{fill:none;stroke:var(--line);stroke-width:10;stroke-linecap:round}
+.ring-prog{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round}
+.ring-dot{fill:var(--surface);stroke:var(--accent);stroke-width:4}
+.ring-num{font-family:var(--display);font-weight:700;font-size:62px;fill:var(--ink)}
+.ring-sub{font-family:var(--body);font-size:14px;font-weight:600;fill:var(--muted)}
+.hero-info{flex:1 1 230px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.hero-title{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.12;text-wrap:balance}
+.facts{display:grid;gap:10px}
+.facts dt{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.03em}
+.facts dd{font-weight:600;font-variant-numeric:tabular-nums}
+details.edit{margin-bottom:26px}
+details.edit summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--accent);padding:6px 0;width:max-content}
+.edit-body{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding-top:10px}
+.edit-body label{flex:0 1 110px}
+
+/* campi */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
+.panel-head{display:flex;flex-direction:column;gap:3px}
+.hint{font-size:13.5px;color:var(--muted)}
+label,.lbl{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+input,textarea,select{font:inherit;font-size:16px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+textarea{resize:vertical;min-height:84px}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.unit{font-weight:500;text-transform:none;letter-spacing:0}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button,.chip-btn{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 14px;font-size:14.5px;font-weight:600;color:var(--ink)}
+.seg button[aria-pressed="true"],.chip-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.seg button[aria-pressed="true"]::before,.chip-btn[aria-pressed="true"]::before{content:"✓ ";font-weight:700}
+.seg button.warn[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+.seg button.alert[aria-pressed="true"]{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:42px;height:42px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:20px;font-weight:600;line-height:1}
+.stepper output{min-width:44px;text-align:center;font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.note{border-radius:12px;padding:10px 12px;font-size:14px;font-weight:500;background:var(--accent-soft)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.alert{background:var(--alert-soft);color:var(--alert)}
+.flags{display:flex;flex-direction:column;gap:8px}
+.flags:empty{display:none}
+.check-row{display:flex;align-items:center;gap:10px}
+details.more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--accent);padding:2px 0;width:max-content}
+details.more .grid-form{padding-top:12px}
+
+.btn{border:0;border-radius:12px;padding:13px 20px;font-weight:700;font-size:16px;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn.small{padding:9px 14px;font-size:14px}
+.btn:disabled{opacity:.55;cursor:default}
+.save-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:6px 0 26px}
+.save-row .hint{flex:1 1 200px}
+.del{border:0;background:none;color:var(--muted);font-size:13px;font-weight:600;padding:6px 8px;border-radius:8px;text-decoration:underline;text-underline-offset:3px}
+.del.armed{color:var(--alert);text-decoration:none;background:var(--alert-soft)}
+
+/* elenchi */
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:8px 0 10px}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 2px}
+.row:last-child{border-bottom:0}
+.row-date{font-weight:700;min-width:84px;font-variant-numeric:tabular-nums}
+.row-main{color:var(--muted);font-variant-numeric:tabular-nums;flex:1 1 90px;min-width:0}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--accent-soft);white-space:nowrap}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.alert{background:var(--alert-soft);color:var(--alert)}
+.empty{font-size:14.5px;color:var(--muted);background:var(--surface2);border-radius:14px;padding:16px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item-date{flex:none;width:52px;text-align:center;line-height:1.05}
+.item-date b{display:block;font-family:var(--display);font-size:24px;font-weight:700}
+.item-date span{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.item-body{flex:1;min-width:0}
+.item-body strong{display:block;overflow-wrap:anywhere}
+.item-body small{display:block;color:var(--muted);font-size:13.5px;overflow-wrap:anywhere}
+.item .check{flex:none;width:28px;height:28px;border-radius:8px;border:1.8px solid var(--line);background:var(--bg);font-weight:800;color:var(--accent-ink);line-height:1}
+.item .check[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
+.item.done .item-body strong{text-decoration:line-through;color:var(--muted)}
+.add-form{display:flex;flex-direction:column;gap:12px}
+.acts{display:flex;flex-direction:column;align-items:flex-end;flex:none}
+.del.edit{color:var(--accent)}
+.del.cancel{align-self:flex-start}
+
+/* grafici */
+.chart-box{width:100%;min-width:0}
+.chart text{font-family:var(--body);font-size:11px;fill:var(--muted)}
+.chart .val{font-size:12px;font-weight:700;fill:var(--ink)}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .ref{stroke:var(--warn);stroke-width:1.3;stroke-dasharray:4 4}
+.chart .ref-l{fill:var(--warn);font-weight:600}
+.chart .s1{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.chart .s2{fill:none;stroke:var(--warm);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.chart .a1{fill:var(--accent-soft);opacity:.7}
+.chart .d1{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.chart .d2{fill:var(--warm);stroke:var(--surface);stroke-width:2}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;font-weight:600;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal .dh{font-size:11px;font-weight:700;text-align:center;color:var(--muted);letter-spacing:.05em}
+.cal button,.cal span.blank{aspect-ratio:1/1;max-height:52px;border-radius:10px}
+.cal button{border:1.5px solid var(--line);background:transparent;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;position:relative;color:var(--ink)}
+.cal button[data-k="e"]{background:var(--accent-soft);border-color:var(--accent-soft)}
+.cal button[data-k="w"]{background:var(--warn-soft);border-color:var(--warn)}
+.cal button[data-k="a"]{background:var(--alert-soft);border-color:var(--alert)}
+.cal button[data-k="w"]::after,.cal button[data-k="a"]::after{position:absolute;top:1px;right:5px;font-size:11px;font-weight:800}
+.cal button[data-k="w"]::after{content:"•";color:var(--warn)}
+.cal button[data-k="a"]::after{content:"!";color:var(--alert)}
+.cal button[data-today="1"]{outline:2px solid var(--ink);outline-offset:1px}
+
+/* scheda medico */
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 18px;margin-bottom:14px}
+.sheet > div{display:grid;grid-template-columns:minmax(0,110px) minmax(0,1fr);gap:4px 14px;padding:13px 0;border-bottom:1px solid var(--line)}
+.sheet > div:last-child{border-bottom:0}
+.sheet dt{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.sheet dd{font-weight:500;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.sheet dd small{display:block;color:var(--muted);font-size:13.5px}
+@media (max-width:420px){.sheet > div{grid-template-columns:1fr}}
+.period{margin-bottom:14px}
+
+/* navigazione */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px))}
+.nav-in{max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border:0;background:none;color:var(--muted);font-size:12px;font-weight:700;border-radius:12px}
+.nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nav button[aria-selected="true"]{color:var(--ink);background:var(--accent-soft)}
+.nav button[aria-selected="true"] svg{stroke:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-weight:600;font-size:14.5px;z-index:9;max-width:calc(100vw - 32px);text-align:center}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:12px 14px;font-size:14px;font-weight:600;margin-bottom:16px}
+@media (prefers-reduced-motion:no-preference){.nav button{transition:background .15s}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <span class="brand">Diario di gravidanza</span>
+    <span class="sync" id="sync" data-s="wait" role="status">Collegamento…</span>
+  </header>
+  <div id="banner" class="banner" hidden>Il salvataggio online non è disponibile in questa vista: quello che scrivi non verrà conservato. Apri il diario da claude.ai per salvare.</div>
+
+  <!-- OGGI -->
+  <section id="tab-oggi" role="tabpanel">
+    <div class="hero" id="hero"></div>
+    <details class="edit">
+      <summary>Aggiorna le settimane</summary>
+      <div class="edit-body">
+        <label>Settimane<input id="e-w" type="number" min="0" max="42" inputmode="numeric"></label>
+        <label>Giorni<input id="e-d" type="number" min="0" max="6" inputmode="numeric"></label>
+        <button class="btn small" id="e-apply" type="button">Applica</button>
+      </div>
+      <p class="hint" style="padding-top:8px">Indica a che punto sei oggi, come ti ha detto il medico. La data presunta del parto si ricalcola da qui.</p>
+    </details>
+
+    <div id="form">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Giornata</h3>
+          <p class="hint">Scegli il giorno da compilare. Puoi anche completare giorni passati.</p>
+        </div>
+        <label>Giorno<input id="f-date" type="date"></label>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Pressione e battito</h3>
+          <p class="hint">Misurala da seduta, dopo qualche minuto di riposo.</p>
+        </div>
+        <div class="grid3">
+          <label>Massima<input id="f-sys" type="number" inputmode="numeric" placeholder="110"></label>
+          <label>Minima<input id="f-dia" type="number" inputmode="numeric" placeholder="70"></label>
+          <label>Battito<input id="f-hr" type="number" inputmode="numeric" placeholder="78"></label>
+        </div>
+        <p class="hint">Pressione in mmHg, battito al minuto.</p>
+        <div class="flags" id="flag-bp"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Peso e temperatura</h3>
+          <p class="hint">Il peso è più confrontabile se lo misuri sempre al mattino, alla stessa ora.</p>
+        </div>
+        <div class="grid2">
+          <label>Peso <span class="unit">(kg)</span><input id="f-peso" type="number" step="0.1" inputmode="decimal" placeholder="58,4"></label>
+          <label>Temperatura <span class="unit">(°C)</span><input id="f-temp" type="number" step="0.1" inputmode="decimal" placeholder="36,6"></label>
+        </div>
+        <div class="flags" id="flag-temp"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Perdite e dolori</h3>
+          <p class="hint">Utile da riferire al medico, soprattutto dopo un controllo ecografico.</p>
+        </div>
+        <div class="lbl">Perdite di sangue<div class="seg" id="seg-perdite" data-group="perdite"></div></div>
+        <div class="lbl">Dolori o crampi<div class="seg" id="seg-dolore" data-group="dolore"></div></div>
+        <div class="flags" id="flag-pd"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Come ti senti</h3>
+          <p class="hint">Tocca tutto quello che hai avuto oggi.</p>
+        </div>
+        <div class="seg" id="seg-sintomi"></div>
+        <div class="lbl">Umore<div class="seg" id="seg-umore" data-group="umore"></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Abitudini</h3></div>
+        <div class="grid2">
+          <div class="lbl">Acqua <span class="unit">(bicchieri)</span>
+            <div class="stepper"><button type="button" id="acq-m" aria-label="Un bicchiere in meno">−</button><output id="acq-v">0</output><button type="button" id="acq-p" aria-label="Un bicchiere in più">+</button></div>
+          </div>
+          <label>Sonno <span class="unit">(ore)</span><input id="f-sonno" type="number" step="0.5" inputmode="decimal" placeholder="7,5"></label>
+        </div>
+        <div class="check-row"><button type="button" class="chip-btn" id="f-folico" aria-pressed="false">Acido folico preso</button></div>
+        <label>Altri farmaci o integratori<input id="f-farmaci" type="text" placeholder="Nome e dose, se ne prendi"></label>
+        <details class="more">
+          <summary>Altri valori</summary>
+          <div class="grid-form">
+            <label>Glicemia <span class="unit">(mg/dL)</span><input id="f-glic" type="number" inputmode="numeric" placeholder="Solo se richiesta"></label>
+          </div>
+        </details>
+        <label>Note<textarea id="f-note" placeholder="Cosa vuoi ricordare o chiedere al medico"></textarea></label>
+      </div>
+
+      <div class="save-row">
+        <button class="btn" id="save" type="button">Salva giornata</button>
+        <button class="del" id="del-entry" type="button" hidden>Elimina questa giornata</button>
+        <p class="hint">Si salva nel cloud e la ritrovi su ogni dispositivo.</p>
+      </div>
+    </div>
+
+    <div class="section-title"><h3>Ultimi giorni</h3><span class="hint">Tocca per riaprire e modificare</span></div>
+    <div class="rows" id="recent"></div>
+  </section>
+
+  <!-- ANDAMENTO -->
+  <section id="tab-andamento" role="tabpanel" hidden>
+    <h2 style="margin-bottom:6px">Andamento</h2>
+    <p class="hint" style="margin-bottom:18px">I grafici si costruiscono con i valori che registri.</p>
+    <div class="panel">
+      <div class="panel-head"><h3>Pressione</h3><p class="hint">La linea tratteggiata segna 140 e 90 mmHg, i valori oltre i quali conviene avvisare il medico.</p></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Massima</span><span><i style="background:var(--warm)"></i>Minima</span></div>
+      <div class="chart-box" id="chart-bp"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Peso</h3></div>
+      <div class="chart-box" id="chart-peso"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Ultime quattro settimane</h3><p class="hint">Ogni casella è un giorno. Tocca per aprirlo.</p></div>
+      <div class="cal" id="cal"></div>
+      <div class="legend"><span><i style="background:var(--accent-soft)"></i>Registrato</span><span><i style="background:var(--warn-soft);outline:1px solid var(--warn)"></i>Da tenere d'occhio</span><span><i style="background:var(--alert-soft);outline:1px solid var(--alert)"></i>Da segnalare</span></div>
+    </div>
+  </section>
+
+  <!-- AGENDA -->
+  <section id="tab-agenda" role="tabpanel" hidden>
+    <h2 style="margin-bottom:18px">Agenda</h2>
+    <div class="panel">
+      <div class="panel-head"><h3>Nuovo appuntamento</h3></div>
+      <form class="add-form" id="appt-form" autocomplete="off">
+        <label>Cosa<input id="a-title" list="a-list" type="text" placeholder="Es. Ecografia di controllo" required></label>
+        <datalist id="a-list"><option value="Visita ginecologica"><option value="Ecografia"><option value="Prelievo del sangue"><option value="Visita ostetrica"><option value="Altro"></datalist>
+        <div class="grid2">
+          <label>Giorno<input id="a-date" type="date" required></label>
+          <label>Ora<input id="a-time" type="time"></label>
+        </div>
+        <label>Luogo o note<input id="a-note" type="text" placeholder="Studio, indirizzo, cosa portare"></label>
+        <button class="btn" type="submit">Aggiungi appuntamento</button>
+        <button type="button" class="del cancel" hidden>Annulla modifica</button>
+      </form>
+    </div>
+    <div class="section-title"><h3>Prossimi</h3></div>
+    <div id="appts-next"></div>
+    <details class="more" style="margin-top:10px"><summary>Appuntamenti passati</summary><div id="appts-past"></div></details>
+
+    <div class="panel" style="margin-top:26px">
+      <div class="panel-head"><h3>Nuovo esame o referto</h3><p class="hint">Tieni qui i risultati degli esami del sangue, delle urine e delle ecografie.</p></div>
+      <form class="add-form" id="lab-form" autocomplete="off">
+        <label>Esame<input id="l-name" list="l-list" type="text" placeholder="Es. Emocromo" required></label>
+        <datalist id="l-list"><option value="Emocromo"><option value="Glicemia"><option value="Gruppo sanguigno e Rh"><option value="Coombs indiretto"><option value="Toxo-test"><option value="Rubeo-test"><option value="Citomegalovirus"><option value="HIV"><option value="Sifilide (VDRL/TPHA)"><option value="Epatite B e C"><option value="TSH"><option value="Ferritina"><option value="Beta-hCG"><option value="Esame urine"><option value="Urinocoltura"><option value="Ecografia ostetrica"></datalist>
+        <div class="grid2">
+          <label>Giorno<input id="l-date" type="date" required></label>
+          <label>Risultato<input id="l-result" type="text" placeholder="Valore o esito"></label>
+        </div>
+        <label>Note<input id="l-note" type="text" placeholder="Commento del medico, intervallo di riferimento"></label>
+        <button class="btn" type="submit">Aggiungi esame</button>
+        <button type="button" class="del cancel" hidden>Annulla modifica</button>
+      </form>
+    </div>
+    <div class="section-title"><h3>Esami e referti</h3></div>
+    <div id="labs"></div>
+  </section>
+
+  <!-- VISITA -->
+  <section id="tab-visita" role="tabpanel" hidden>
+    <h2 style="margin-bottom:6px">Per la visita</h2>
+    <p class="hint" style="margin-bottom:16px">Il riepilogo dei valori da mostrare al ginecologo, sempre aggiornato.</p>
+    <div class="seg period" id="seg-period" data-group="period"></div>
+    <dl class="sheet" id="sheet"></dl>
+    <div class="save-row" style="margin-top:0"><button class="btn" id="copy" type="button">Copia il riepilogo</button><p class="hint" id="copy-hint">Poi incollalo in un messaggio o in una nota.</p></div>
+    <textarea id="copy-area" readonly hidden style="min-height:160px;margin-bottom:14px"></textarea>
+
+    <div class="section-title"><h3>Domande per il medico</h3></div>
+    <form class="add-form" id="q-form" autocomplete="off" style="margin-bottom:6px">
+      <div style="display:flex;gap:10px"><input id="q-text" type="text" placeholder="Scrivi una domanda" aria-label="Nuova domanda" required><button class="btn" type="submit" style="flex:none">Aggiungi</button></div><button type="button" class="del cancel" hidden>Annulla modifica</button>
+    </form>
+    <div id="questions"></div>
+    <div class="panel" style="margin-top:26px">
+      <div class="panel-head"><h3>Sincronizza con la versione offline</h3><p class="hint">Hai modificato il diario nel file offline? Esporta i dati da lì e importali qui: per ogni voce vince la modifica più recente. Per fare il contrario, esporta da qui e importa nel file.</p></div>
+      <div class="save-row" style="margin:0"><button class="btn" id="bk-export" type="button">Esporta i dati</button><label class="btn ghost" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:16px;color:var(--accent)">Importa e sincronizza<input id="bk-import" type="file" accept="application/json,.json" hidden></label></div>
+      <p class="hint">Le voci eliminate non si sincronizzano: se ne elimini una in un posto, eliminala anche nell'altro.</p>
+    </div>
+  </section>
+</div>
+
+<nav class="nav" aria-label="Sezioni">
+  <div class="nav-in" role="tablist">
+    <button role="tab" data-tab="oggi" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>Oggi</button>
+    <button role="tab" data-tab="andamento" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 8-9"/><path d="M3 21h18"/></svg>Andamento</button>
+    <button role="tab" data-tab="agenda" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>Agenda</button>
+    <button role="tab" data-tab="visita" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M9.5 4V3h5v1M9 10h6M9 14h6"/></svg>Visita</button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function(){
+'use strict';
+var DEFAULT_START='2026-08-20';
+var MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+var GG=['dom','lun','mar','mer','gio','ven','sab'];
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var pad=function(n){return String(n).padStart(2,'0')};
+var ymd=function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+var today=function(){return ymd(new Date())};
+var utc=function(s){var p=s.split('-').map(Number);return Date.UTC(p[0],p[1]-1,p[2])};
+var dbt=function(a,b){return Math.round((utc(b)-utc(a))/864e5)};
+var addDays=function(s,n){var t=new Date(utc(s)+n*864e5);return t.getUTCFullYear()+'-'+pad(t.getUTCMonth()+1)+'-'+pad(t.getUTCDate())};
+var dow=function(s){return new Date(utc(s)).getUTCDay()};
+var dnum=function(s){return +s.slice(8,10)};
+var mshort=function(s){return MESI[+s.slice(5,7)-1].slice(0,3)};
+var fmtShort=function(s){return GG[dow(s)]+' '+dnum(s)+' '+mshort(s)};
+var fmtLong=function(s){return dnum(s)+' '+MESI[+s.slice(5,7)-1]+' '+s.slice(0,4)};
+var nf=function(n,d){return Number(n).toLocaleString('it-IT',{maximumFractionDigits:d==null?1:d})};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var gg=function(n){return n+(n===1?' giorno':' giorni')};
+var avg=function(a){return a.reduce(function(x,y){return x+y},0)/a.length};
+var BASE='2026-01-01';
+
+var PERDITE=[['nessuna','Nessuna',''],['rosa','Rosa o marroni','warn'],['rosso','Rosso vivo','alert']];
+var DOLORE=[['nessuno','Nessuno',''],['lieve','Lievi',''],['moderato','Moderati','warn'],['forte','Forti','alert']];
+var UMORE=['Serena','Così così','Ansiosa','Giù'];
+var SINTOMI=['Nausea','Vomito','Stanchezza','Gonfiore o gas','Stitichezza','Mal di testa','Vertigini','Seno teso','Bruciore urinando','Bruciore di stomaco'];
+var PERIODI=[['7','7 giorni'],['14','14 giorni'],['30','30 giorni'],['tutto','Tutto']];
+
+var S={db:null,local:false,ready:false,startAt:0,start:DEFAULT_START,entries:[],appts:[],labs:[],questions:[],tab:'oggi',period:'14',dirty:false,
+  form:{date:today(),perdite:'nessuna',dolore:'nessuno',sintomi:[],umore:'',acqua:0,folico:false}};
+
+/* ---------- salvataggio ---------- */
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){t.hidden=true},2600)}
+function setSync(s){var el=$('#sync');el.dataset.s=s;el.textContent={wait:'Collegamento…',ok:S.local?'Salvato su questo dispositivo':'Salvato nel cloud',off:'Non salva online',err:'Sola lettura'}[s]}
+function errMsg(e){var c=e&&e.code;if(c==='invalid_argument')return 'Non puoi modificare questo diario: accesso in sola lettura.';if(c==='quota_exceeded')return 'Spazio esaurito: elimina qualche voce.';return 'Non sono riuscita a salvare. Riprova tra un momento.'}
+async function writeDoc(key,id,data,keep){
+  data=Object.assign({},data);if(!keep)data.updatedAt=Date.now();
+  if(S.db){var ref=id?S.db.collection(key).doc(id):S.db.collection(key).doc();await ref.set(data);return ref.id}
+  id=id||('l'+Math.random().toString(36).slice(2,9));
+  var row=Object.assign({id:id},data);var i=S[key].findIndex(function(x){return x.id===id});
+  if(i>=0)S[key][i]=row;else S[key].push(row);onData();return id;
+}
+async function removeDoc(key,id){
+  if(S.db){await S.db.collection(key).doc(id).delete();return}
+  S[key]=S[key].filter(function(x){return x.id!==id});onData();
+}
+function rowData(r){var o=Object.assign({},r);delete o.id;return o}
+
+/* ---------- gravidanza ---------- */
+function gest(s){var d=dbt(S.start,s);return{d:d,w:Math.floor(d/7),r:((d%7)+7)%7}}
+function trimestre(w){return w<14?'Primo trimestre':w<28?'Secondo trimestre':'Terzo trimestre'}
+function renderHero(){
+  var g=gest(today());var d=Math.min(280,Math.max(0,g.d));
+  var R=84,C=100,GAP=3;
+  var deg=function(x){return 360*x/280};
+  var pt=function(a){var r=(a-90)*Math.PI/180;return [C+R*Math.cos(r),C+R*Math.sin(r)]};
+  var arc=function(a0,a1){var p0=pt(a0),p1=pt(a1);return 'M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2)+'A'+R+' '+R+' 0 '+((a1-a0)>180?1:0)+' 1 '+p1[0].toFixed(2)+' '+p1[1].toFixed(2)};
+  var track='',prog='';
+  [[0,98],[98,196],[196,280]].forEach(function(sg){
+    var a0=deg(sg[0])+GAP/2,a1=deg(sg[1])-GAP/2;
+    track+='<path class="ring-track" d="'+arc(a0,a1)+'"/>';
+    if(d>sg[0]){var e=Math.min(d,sg[1]);var pe=Math.max(a0+0.6,deg(e)-(e>=sg[1]?GAP/2:0));prog+='<path class="ring-prog" d="'+arc(a0,pe)+'"/>'}
+  });
+  var p=pt(deg(d));
+  var rem=Math.max(0,280-g.d),due=addDays(S.start,280);
+  var pct=Math.round(d/280*100);
+  var titolo=g.w+'ª settimana'+(g.r?' e '+g.r+(g.r===1?' giorno':' giorni'):'');
+  $('#hero').innerHTML=
+   '<svg class="ring" viewBox="0 0 200 200" role="img" aria-label="'+esc(titolo)+', '+pct+'% del percorso">'+track+prog+
+   '<circle class="ring-dot" cx="'+p[0].toFixed(2)+'" cy="'+p[1].toFixed(2)+'" r="6.5"/>'+
+   '<text class="ring-num" x="100" y="106" text-anchor="middle">'+g.w+'</text>'+
+   '<text class="ring-sub" x="100" y="127" text-anchor="middle">settimane</text>'+
+   '<text class="ring-sub" x="100" y="146" text-anchor="middle">+ '+g.r+(g.r===1?' giorno':' giorni')+'</text></svg>'+
+   '<div class="hero-info"><div><p class="eyebrow">'+trimestre(g.w)+' · '+pct+'%</p><h1 class="hero-title">'+esc(titolo)+'</h1></div>'+
+   '<dl class="facts"><div><dt>Data presunta del parto</dt><dd>'+fmtLong(due)+'</dd></div>'+
+   '<div><dt>Mancano</dt><dd>'+rem+' giorni ('+Math.floor(rem/7)+' settimane e '+(rem%7)+' giorni)</dd></div></dl></div>';
+  var ew=$('#e-w'),ed=$('#e-d');if(document.activeElement!==ew&&document.activeElement!==ed){ew.value=g.w;ed.value=g.r}
+}
+
+/* ---------- modulo giornata ---------- */
+function buildControls(){
+  [['perdite',PERDITE],['dolore',DOLORE]].forEach(function(c){
+    $('#seg-'+c[0]).innerHTML=c[1].map(function(o){return '<button type="button" class="'+o[2]+'" data-v="'+o[0]+'" aria-pressed="false">'+o[1]+'</button>'}).join('');
+  });
+  $('#seg-umore').innerHTML=UMORE.map(function(u){return '<button type="button" data-v="'+u+'" aria-pressed="false">'+u+'</button>'}).join('');
+  $('#seg-sintomi').innerHTML=SINTOMI.map(function(s){return '<button type="button" class="chip-btn" data-sym="'+s+'" aria-pressed="false">'+s+'</button>'}).join('');
+  $('#seg-period').innerHTML=PERIODI.map(function(p){return '<button type="button" data-v="'+p[0]+'" aria-pressed="false">'+p[1]+'</button>'}).join('');
+}
+function paintControls(){
+  var f=S.form;
+  ['perdite','dolore','umore'].forEach(function(g){$$('#seg-'+g+' button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===f[g]))})});
+  $$('#seg-sintomi button').forEach(function(b){b.setAttribute('aria-pressed',String(f.sintomi.indexOf(b.dataset.sym)>=0))});
+  $('#f-folico').setAttribute('aria-pressed',String(f.folico));
+  $('#acq-v').textContent=f.acqua;
+  $$('#seg-period button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===S.period))});
+}
+function numVal(id){var v=$('#'+id).value.trim();if(v==='')return null;var n=parseFloat(v.replace(',','.'));return isNaN(n)?null:n}
+function updateFlags(){
+  var sys=numVal('f-sys'),dia=numVal('f-dia'),t=numVal('f-temp'),f=S.form,bp='',tp='',pd='';
+  if(sys!=null&&dia!=null){
+    if(sys>=160||dia>=110)bp='<div class="note alert">Valori molto alti: contatta oggi stesso il medico o vai al pronto soccorso.</div>';
+    else if(sys>=140||dia>=90)bp='<div class="note alert">Valori alti: ripeti la misura dopo qualche minuto di riposo e segnalali al medico.</div>';
+    else if(sys<90||dia<60)bp='<div class="note warn">Valori bassi: succede spesso nelle prime settimane. Se hai vertigini o svenimenti, avvisa il medico.</div>';
+    else bp='<div class="note">Valori nella norma.</div>';
+  }
+  if(t!=null&&t>=38)tp='<div class="note warn">Hai la febbre: segnalala al medico.</div>';
+  if(f.perdite==='rosso')pd+='<div class="note alert">Perdite di sangue rosso vivo: contatta subito il medico o vai al pronto soccorso.</div>';
+  else if(f.perdite==='rosa')pd+='<div class="note warn">Perdite rosa o marroni: annotale e riferiscile al medico.</div>';
+  if(f.dolore==='forte')pd+='<div class="note alert">Dolore forte, ritmico o che non passa col riposo: contatta il medico o vai al pronto soccorso.</div>';
+  $('#flag-bp').innerHTML=bp;$('#flag-temp').innerHTML=tp;$('#flag-pd').innerHTML=pd;
+}
+function loadForm(date){
+  var e=S.entries.find(function(x){return x.id===date})||null;
+  var o=e||{};
+  S.form={date:date,perdite:o.perdite||'nessuna',dolore:o.dolore||'nessuno',sintomi:(o.sintomi||[]).slice(),umore:o.umore||'',acqua:o.acqua||0,folico:!!o.folico};
+  $('#f-date').value=date;
+  [['f-sys','sys'],['f-dia','dia'],['f-hr','hr'],['f-peso','peso'],['f-temp','temp'],['f-sonno','sonno'],['f-glic','glic']].forEach(function(p){$('#'+p[0]).value=o[p[1]]!=null?o[p[1]]:''});
+  $('#f-farmaci').value=o.farmaci||'';$('#f-note').value=o.note||'';
+  if(o.glic!=null)$('details.more').open=true;
+  $('#del-entry').hidden=!e;
+  S.dirty=false;paintControls();updateFlags();
+}
+async function saveEntry(){
+  var f=S.form,chk=[['f-sys','sys','Pressione massima',60,260],['f-dia','dia','Pressione minima',30,160],['f-hr','hr','Battito',30,220],['f-peso','peso','Peso',30,250],['f-temp','temp','Temperatura',34,42],['f-sonno','sonno','Ore di sonno',0,24],['f-glic','glic','Glicemia',20,600]];
+  var e={date:f.date,perdite:f.perdite,dolore:f.dolore,sintomi:f.sintomi,acqua:f.acqua,folico:f.folico,updatedAt:Date.now()};
+  for(var i=0;i<chk.length;i++){var c=chk[i],v=numVal(c[0]);if(v==null)continue;if(v<c[3]||v>c[4]){toast('Controlla il valore: '+c[2]);$('#'+c[0]).focus();return}e[c[1]]=v}
+  if(f.umore)e.umore=f.umore;
+  var fa=$('#f-farmaci').value.trim(),no=$('#f-note').value.trim();if(fa)e.farmaci=fa;if(no)e.note=no;
+  var b=$('#save');b.disabled=true;
+  try{await writeDoc('entries',f.date,e);S.dirty=false;toast('Giornata salvata');$('#del-entry').hidden=false}
+  catch(err){toast(errMsg(err))}
+  b.disabled=false;
+}
+
+/* ---------- segnalazioni ---------- */
+function flagsOf(e){
+  var o=[];
+  if(e.sys!=null&&e.dia!=null){if(e.sys>=140||e.dia>=90)o.push(['Pressione alta','alert']);else if(e.sys<90||e.dia<60)o.push(['Pressione bassa','warn'])}
+  if(e.perdite==='rosso')o.push(['Perdite rosso vivo','alert']);else if(e.perdite==='rosa')o.push(['Perdite','warn']);
+  if(e.dolore==='forte')o.push(['Dolore forte','alert']);else if(e.dolore==='moderato')o.push(['Dolore moderato','warn']);
+  if(e.temp!=null&&e.temp>=38)o.push(['Febbre','warn']);
+  return o;
+}
+var byDateDesc=function(a,b){return a.id<b.id?1:a.id>b.id?-1:0};
+var byDateAsc=function(a,b){return a.id<b.id?-1:a.id>b.id?1:0};
+
+function renderRecent(){
+  var list=S.entries.slice().sort(byDateDesc).slice(0,7),box=$('#recent');
+  if(!list.length){box.innerHTML='<p class="empty">Ancora nessuna giornata registrata. Compila il modulo e premi “Salva giornata”: da qui potrai riaprirla e modificarla.</p>';return}
+  box.innerHTML=list.map(function(e){
+    var bits=[];if(e.sys!=null&&e.dia!=null)bits.push(e.sys+'/'+e.dia);if(e.peso!=null)bits.push(nf(e.peso)+' kg');
+    return '<button type="button" class="row" data-date="'+esc(e.id)+'"><span class="row-date">'+fmtShort(e.id)+'</span><span class="row-main">'+(bits.join(' · ')||'Nessun valore numerico')+'</span>'+
+      flagsOf(e).map(function(f){return '<span class="chip '+f[1]+'">'+f[0]+'</span>'}).join('')+'</button>';
+  }).join('');
+}
+
+/* ---------- grafici ---------- */
+function niceTicks(min,max){var range=max-min,steps=[0.5,1,2,5,10,20,50],st=100;for(var i=0;i<steps.length;i++){if(range/steps[i]<=5){st=steps[i];break}}
+  var out=[];for(var v=Math.ceil(min/st)*st;v<=max+1e-9;v+=st)out.push(+v.toFixed(2));return out}
+function drawChart(host,o){
+  var W=Math.max(280,host.clientWidth||320),H=220,L=42,Rr=18,T=20,B=28;
+  var all=[];o.series.forEach(function(s){all=all.concat(s.pts)});
+  if(!all.length){host.innerHTML='<p class="empty">'+o.empty+'</p>';return}
+  var xs=all.map(function(p){return p.x}),x0=Math.min.apply(null,xs),x1=Math.max.apply(null,xs),span=Math.max(1,x1-x0);
+  var X=function(x){return x1===x0?(L+W-Rr)/2:L+(x-x0)/span*(W-L-Rr)};
+  var Y=function(y){return T+(o.yMax-y)/(o.yMax-o.yMin)*(H-T-B)};
+  var g='';
+  niceTicks(o.yMin,o.yMax).forEach(function(v){g+='<line class="grid" x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text x="'+(L-8)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+nf(v,1)+'</text>'});
+  (o.refs||[]).forEach(function(r){if(r.v>=o.yMin&&r.v<=o.yMax)g+='<line class="ref" x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(r.v)+'" y2="'+Y(r.v)+'"/><text class="ref-l" x="'+(L+4)+'" y="'+(Y(r.v)-5)+'">'+r.v+'</text>'});
+  var xl=[[x0,'start']];if(x1!==x0){xl.push([x1,'end']);if(span>=4)xl.push([Math.round(x0+span/2),'middle'])}
+  xl.forEach(function(p){g+='<text x="'+(p[1]==='start'?Math.max(L,X(p[0])-0):p[1]==='end'?Math.min(W-Rr+10,X(p[0])):X(p[0]))+'" y="'+(H-8)+'" text-anchor="'+(x1===x0?'middle':p[1])+'">'+dnum(addDays(BASE,p[0]))+' '+mshort(addDays(BASE,p[0]))+'</text>'});
+  o.series.forEach(function(s,i){
+    if(!s.pts.length)return;var c=i+1,pts=s.pts;
+    if(o.area&&pts.length>1)g+='<path class="a'+c+'" d="M'+X(pts[0].x)+' '+Y(o.yMin)+pts.map(function(p){return 'L'+X(p.x)+' '+Y(p.y)}).join('')+'L'+X(pts[pts.length-1].x)+' '+Y(o.yMin)+'Z"/>';
+    if(pts.length>1)g+='<polyline class="s'+c+'" points="'+pts.map(function(p){return X(p.x).toFixed(1)+','+Y(p.y).toFixed(1)}).join(' ')+'"/>';
+    pts.forEach(function(p,k){g+='<circle class="d'+c+'" cx="'+X(p.x).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="'+(k===pts.length-1?5.5:3.5)+'"/>'});
+    var l=pts[pts.length-1],lx=X(l.x),ly=Y(l.y)+(i===0?-11:19);ly=Math.max(T+6,Math.min(H-B-4,ly));
+    g+='<text class="val" x="'+Math.min(lx,W-Rr-8)+'" y="'+ly+'" text-anchor="'+(lx>W-60?'end':'middle')+'">'+nf(l.y,o.dec)+'</text>';
+  });
+  host.innerHTML='<svg class="chart" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label)+'">'+g+'</svg>';
+}
+function renderTrend(){
+  if(S.tab!=='andamento')return;
+  var es=S.entries.slice().sort(byDateAsc),X=function(e){return dbt(BASE,e.id)};
+  var sy=es.filter(function(e){return e.sys!=null&&e.dia!=null});
+  var lastBP=sy.length?sy[sy.length-1]:null;
+  var vals=[];sy.forEach(function(e){vals.push(e.sys,e.dia)});
+  drawChart($('#chart-bp'),{series:[{pts:sy.map(function(e){return{x:X(e),y:e.sys}})},{pts:sy.map(function(e){return{x:X(e),y:e.dia}})}],
+    yMin:vals.length?Math.min(50,Math.floor(Math.min.apply(null,vals)/10)*10-10):50,yMax:vals.length?Math.max(150,Math.ceil(Math.max.apply(null,vals)/10)*10+10):150,refs:[{v:140},{v:90}],dec:0,
+    label:lastBP?'Andamento della pressione, ultima misura '+lastBP.sys+' su '+lastBP.dia:'Andamento della pressione',empty:'Registra la pressione per qualche giorno e qui vedrai le due linee, massima e minima.'});
+  var pe=es.filter(function(e){return e.peso!=null});
+  var pv=pe.map(function(e){return e.peso}),mn=pv.length?Math.min.apply(null,pv):0,mx=pv.length?Math.max.apply(null,pv):0,pad2=Math.max(1,(mx-mn)*0.3);
+  drawChart($('#chart-peso'),{series:[{pts:pe.map(function(e){return{x:X(e),y:e.peso}})}],area:true,yMin:Math.floor(mn-pad2),yMax:Math.ceil(mx+pad2),dec:1,
+    label:pe.length?'Andamento del peso, ultimo valore '+nf(pe[pe.length-1].peso)+' chili':'Andamento del peso',empty:'Registra il peso qualche volta e qui vedrai come cambia nel tempo.'});
+  renderCal();
+}
+function renderCal(){
+  var t=today(),start=addDays(t,-27),blank=(dow(start)+6)%7,h='';
+  ['L','M','M','G','V','S','D'].forEach(function(d){h+='<span class="dh">'+d+'</span>'});
+  for(var i=0;i<blank;i++)h+='<span class="blank"></span>';
+  for(var k=0;k<28;k++){
+    var d=addDays(start,k),e=S.entries.find(function(x){return x.id===d}),kind='';
+    if(e){var fl=flagsOf(e);kind=fl.some(function(f){return f[1]==='alert'})?'a':fl.length?'w':'e'}
+    h+='<button type="button" data-date="'+d+'" data-k="'+kind+'"'+(d===t?' data-today="1"':'')+' aria-label="'+fmtShort(d)+(kind==='a'?', da segnalare':kind==='w'?', da tenere d\'occhio':kind==='e'?', registrato':', nessun dato')+'">'+dnum(d)+'</button>';
+  }
+  $('#cal').innerHTML=h;
+}
+
+/* ---------- agenda ---------- */
+function rel(d){var n=dbt(today(),d);return n===0?'oggi':n===1?'domani':n===-1?'ieri':n>0?'tra '+n+' giorni':Math.abs(n)+' giorni fa'}
+function apptHTML(a){
+  return '<div class="item"><div class="item-date"><b>'+dnum(a.date)+'</b><span>'+mshort(a.date)+'</span></div><div class="item-body"><strong>'+esc(a.title)+'</strong><small>'+esc((a.time?a.time+' · ':'')+rel(a.date)+(a.note?' · '+a.note:''))+'</small></div><div class="acts"><button type="button" class="del edit" data-edit="appts" data-id="'+esc(a.id)+'">Modifica</button><button type="button" class="del" data-del="appts" data-id="'+esc(a.id)+'">Elimina</button></div></div>';
+}
+function renderAgenda(){
+  var t=today(),up=S.appts.filter(function(a){return a.date>=t}).sort(function(a,b){return (a.date+(a.time||''))<(b.date+(b.time||''))?-1:1});
+  var past=S.appts.filter(function(a){return a.date<t}).sort(function(a,b){return a.date<b.date?1:-1});
+  $('#appts-next').innerHTML=up.length?up.map(apptHTML).join(''):'<p class="empty">Nessun appuntamento in programma. Aggiungi la prossima ecografia o visita dal modulo qui sopra.</p>';
+  $('#appts-past').innerHTML=past.length?past.map(apptHTML).join(''):'<p class="empty" style="margin-top:10px">Nessun appuntamento passato.</p>';
+  var labs=S.labs.slice().sort(function(a,b){return a.date<b.date?1:-1});
+  $('#labs').innerHTML=labs.length?labs.map(function(l){
+    return '<div class="item"><div class="item-date"><b>'+dnum(l.date)+'</b><span>'+mshort(l.date)+'</span></div><div class="item-body"><strong>'+esc(l.name)+(l.result?' · '+esc(l.result):'')+'</strong><small>'+esc(l.note||'')+(l.note?'':fmtLong(l.date))+'</small></div><div class="acts"><button type="button" class="del edit" data-edit="labs" data-id="'+esc(l.id)+'">Modifica</button><button type="button" class="del" data-del="labs" data-id="'+esc(l.id)+'">Elimina</button></div></div>';
+  }).join(''):'<p class="empty">Nessun esame registrato. Aggiungi un referto per ritrovarlo in visita, con data e risultato.</p>';
+}
+
+/* ---------- visita ---------- */
+function periodEntries(){
+  var l=S.entries.slice().sort(byDateAsc);
+  if(S.period!=='tutto'){var from=addDays(today(),-(Number(S.period)-1));l=l.filter(function(e){return e.id>=from})}
+  return l;
+}
+function summaryRows(){
+  var g=gest(today()),es=periodEntries(),rows=[];
+  var open=S.questions.filter(function(q){return !q.done}).sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
+  rows.push(['Gravidanza',g.w+'ª settimana'+(g.r?' e '+g.r+(g.r===1?' giorno':' giorni'):''),'Data presunta del parto: '+fmtLong(addDays(S.start,280))]);
+  var plab=S.period==='tutto'?'Da quando usi il diario':'Ultimi '+S.period+' giorni';
+  if(!es.length){rows.push(['Periodo',plab,'Nessuna giornata registrata in questo periodo.'])}
+  else{
+    rows.push(['Periodo',plab,es.length+(es.length===1?' giornata registrata':' giornate registrate')]);
+    var sy=es.filter(function(e){return e.sys!=null}),di=es.filter(function(e){return e.dia!=null}),pr=es.filter(function(e){return e.sys!=null&&e.dia!=null});
+    if(pr.length){
+      var L=pr[pr.length-1],hi=pr.filter(function(e){return e.sys>=140||e.dia>=90}).length,lo=pr.filter(function(e){return e.sys<90||e.dia<60}).length;
+      var sub='Da '+Math.min.apply(null,sy.map(function(e){return e.sys}))+'/'+Math.min.apply(null,di.map(function(e){return e.dia}))+' a '+Math.max.apply(null,sy.map(function(e){return e.sys}))+'/'+Math.max.apply(null,di.map(function(e){return e.dia}));
+      if(hi)sub+=' · '+hi+(hi===1?' misura':' misure')+' sopra 140/90';if(lo)sub+=' · '+lo+(lo===1?' misura':' misure')+' sotto 90/60';
+      rows.push(['Pressione','Ultima '+L.sys+'/'+L.dia+' ('+fmtShort(L.id)+'), media '+Math.round(avg(sy.map(function(e){return e.sys})))+'/'+Math.round(avg(di.map(function(e){return e.dia}))),sub,hi?'alert':lo?'warn':'']);
+    }
+    var hr=es.filter(function(e){return e.hr!=null});
+    if(hr.length)rows.push(['Battito','Ultimo '+hr[hr.length-1].hr+' ('+fmtShort(hr[hr.length-1].id)+'), media '+Math.round(avg(hr.map(function(e){return e.hr})))+' al minuto','']);
+    var pe=es.filter(function(e){return e.peso!=null});
+    if(pe.length){var a=pe[0],b=pe[pe.length-1],df=b.peso-a.peso;
+      rows.push(['Peso',nf(b.peso)+' kg ('+fmtShort(b.id)+')',pe.length>1?'Primo valore '+nf(a.peso)+' kg ('+fmtShort(a.id)+'), variazione '+(df>0?'+':df<0?'−':'')+nf(Math.abs(df))+' kg':'Un solo valore nel periodo']);}
+    var te=es.filter(function(e){return e.temp!=null});
+    if(te.length){var mt=Math.max.apply(null,te.map(function(e){return e.temp}));rows.push(['Temperatura','Massima '+nf(mt)+' °C',mt>=38?'Febbre registrata: segnalala':'Nessuna febbre registrata',mt>=38?'warn':'']);}
+    var gl=es.filter(function(e){return e.glic!=null});
+    if(gl.length)rows.push(['Glicemia','Ultima '+gl[gl.length-1].glic+' mg/dL ('+fmtShort(gl[gl.length-1].id)+')','']);
+    var pdR=es.filter(function(e){return e.perdite==='rosso'}),pdA=es.filter(function(e){return e.perdite==='rosa'});
+    rows.push(['Perdite',(pdR.length||pdA.length)?[pdR.length?gg(pdR.length)+' con sangue rosso vivo ('+pdR.map(function(e){return fmtShort(e.id)}).join(', ')+')':'',pdA.length?gg(pdA.length)+' con perdite rosa o marroni ('+pdA.map(function(e){return fmtShort(e.id)}).join(', ')+')':''].filter(Boolean).join('; '):'Nessuna perdita registrata','',pdR.length?'alert':pdA.length?'warn':'']);
+    var dl=es.filter(function(e){return e.dolore&&e.dolore!=='nessuno'}),cnt=function(k){return dl.filter(function(e){return e.dolore===k}).length};
+    rows.push(['Dolori',dl.length?[cnt('forte')?gg(cnt('forte'))+' forti':'',cnt('moderato')?cnt('moderato')+' moderati':'',cnt('lieve')?cnt('lieve')+' lievi':''].filter(Boolean).join(', '):'Nessun dolore o crampo registrato','',cnt('forte')?'alert':cnt('moderato')?'warn':'']);
+    var sc={};es.forEach(function(e){(e.sintomi||[]).forEach(function(s){sc[s]=(sc[s]||0)+1})});
+    var top=Object.keys(sc).sort(function(a,b){return sc[b]-sc[a]}).slice(0,5);
+    rows.push(['Sintomi',top.length?top.map(function(s){return s+' ('+sc[s]+')'}).join(', '):'Nessun sintomo registrato','']);
+    var fo=es.filter(function(e){return e.folico}).length;rows.push(['Acido folico','Assunto in '+fo+' giornate su '+es.length,'']);
+    var fm=es.filter(function(e){return e.farmaci}),ff=[];fm.forEach(function(e){if(ff.indexOf(e.farmaci)<0)ff.push(e.farmaci)});
+    if(ff.length)rows.push(['Farmaci',ff.slice(0,5).join('; '),'']);
+  }
+  var labs=S.labs.slice().sort(function(a,b){return a.date<b.date?1:-1}).slice(0,5);
+  if(labs.length)rows.push(['Esami recenti',labs.map(function(l){return l.name+(l.result?': '+l.result:'')+' ('+fmtShort(l.date)+')'}).join('; '),'']);
+  var up=S.appts.filter(function(a){return a.date>=today()}).sort(function(a,b){return a.date<b.date?-1:1})[0];
+  if(up)rows.push(['Prossimo controllo',up.title+', '+fmtLong(up.date)+(up.time?' alle '+up.time:''),'']);
+  if(open.length)rows.push(['Domande',open.map(function(q){return q.text}).join(' · '),'']);
+  return rows;
+}
+function renderVisita(){
+  var rows=summaryRows();
+  $('#sheet').innerHTML=rows.map(function(r){
+    var tone=r[3]?' style="color:var(--'+(r[3]==='alert'?'alert':'warn')+')"':'';
+    return '<div><dt>'+esc(r[0])+'</dt><dd><span'+tone+'>'+esc(r[1])+'</span>'+(r[2]?'<small>'+esc(r[2])+'</small>':'')+'</dd></div>';
+  }).join('');
+  var qs=S.questions.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
+  $('#questions').innerHTML=qs.length?qs.map(function(q){
+    return '<div class="item'+(q.done?' done':'')+'"><button type="button" class="check" data-q="'+esc(q.id)+'" aria-pressed="'+!!q.done+'" aria-label="Segna come chiesta">'+(q.done?'✓':'')+'</button><div class="item-body"><strong>'+esc(q.text)+'</strong></div><div class="acts"><button type="button" class="del edit" data-edit="questions" data-id="'+esc(q.id)+'">Modifica</button><button type="button" class="del" data-del="questions" data-id="'+esc(q.id)+'">Elimina</button></div></div>';
+  }).join(''):'<p class="empty">Nessuna domanda. Scrivi qui quello che vuoi chiedere al medico, così in visita non te ne dimentichi nessuna.</p>';
+}
+function summaryText(){
+  var out=['Diario di gravidanza · riepilogo del '+fmtLong(today()),''];
+  summaryRows().forEach(function(r){out.push(r[0]+': '+r[1]+(r[2]?' ('+r[2]+')':''))});
+  return out.join('\n');
+}
+
+/* ---------- aggiornamento generale ---------- */
+function onData(){
+  renderRecent();renderTrend();renderAgenda();renderVisita();
+  if(S.local&&S.ready)persist();
+  if(!S.dirty)loadForm(S.form.date);
+}
+function showTab(t){
+  S.tab=t;
+  $$('[role="tabpanel"]').forEach(function(p){p.hidden=p.id!=='tab-'+t});
+  $$('.nav button').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===t))});
+  window.scrollTo(0,0);
+  if(t==='andamento')renderTrend();
+  try{history.replaceState(null,'','#'+t)}catch(e){}
+}
+
+/* ---------- eventi ---------- */
+function bind(){
+  $$('.nav button').forEach(function(b){b.addEventListener('click',function(){showTab(b.dataset.tab)})});
+  var form=$('#form');
+  form.addEventListener('input',function(e){if(e.target.id==='f-date')return;S.dirty=true;updateFlags()});
+  $('#f-date').addEventListener('change',function(){var v=this.value;if(!v)return;loadForm(v)});
+  ['perdite','dolore','umore'].forEach(function(g){$('#seg-'+g).addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;S.form[g]=(g==='umore'&&S.form.umore===b.dataset.v)?'':b.dataset.v;S.dirty=true;paintControls();updateFlags()})});
+  $('#seg-sintomi').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var s=b.dataset.sym,i=S.form.sintomi.indexOf(s);if(i>=0)S.form.sintomi.splice(i,1);else S.form.sintomi.push(s);S.dirty=true;paintControls()});
+  $('#f-folico').addEventListener('click',function(){S.form.folico=!S.form.folico;S.dirty=true;paintControls()});
+  $('#acq-m').addEventListener('click',function(){S.form.acqua=Math.max(0,S.form.acqua-1);S.dirty=true;paintControls()});
+  $('#acq-p').addEventListener('click',function(){S.form.acqua=Math.min(20,S.form.acqua+1);S.dirty=true;paintControls()});
+  $('#save').addEventListener('click',saveEntry);
+  $('#recent').addEventListener('click',openDate);
+  $('#cal').addEventListener('click',openDate);
+  function openDate(e){var b=e.target.closest('[data-date]');if(!b)return;showTab('oggi');loadForm(b.dataset.date);$('#form').scrollIntoView({behavior:'smooth',block:'start'})}
+
+  $('#e-apply').addEventListener('click',async function(){
+    var w=parseInt($('#e-w').value,10),d=parseInt($('#e-d').value,10)||0;
+    if(isNaN(w)||w<0||w>42||d<0||d>6){toast('Inserisci settimane da 0 a 42 e giorni da 0 a 6');return}
+    var start=addDays(today(),-(w*7+d));
+    try{var at=Date.now();if(S.db)await S.db.doc('config/gravidanza').set({startDate:start,updatedAt:at});S.start=start;S.startAt=at;persist();renderHero();renderVisita();toast('Settimane aggiornate')}catch(err){toast(errMsg(err))}
+  });
+
+  $('#seg-period').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;S.period=b.dataset.v;paintControls();renderVisita()});
+  $('#copy').addEventListener('click',function(){
+    var txt=summaryText(),area=$('#copy-area');area.value=txt;
+    var fallback=function(){area.hidden=false;area.focus();area.select();$('#copy-hint').textContent='Seleziona il testo e copialo.'};
+    try{navigator.clipboard.writeText(txt).then(function(){toast('Riepilogo copiato')},fallback)}catch(e){fallback()}
+  });
+
+  $('#appt-form').addEventListener('submit',async function(e){e.preventDefault();
+    var o={title:$('#a-title').value.trim(),date:$('#a-date').value,time:$('#a-time').value,note:$('#a-note').value.trim(),createdAt:Date.now()};
+    if(!o.title||!o.date)return;
+    var id=S.editing.appts,old=id?S.appts.find(function(x){return x.id===id}):null;if(old&&old.createdAt)o.createdAt=old.createdAt;
+    try{await writeDoc('appts',id||null,o);setEdit('appts',null);toast(id?'Appuntamento aggiornato':'Appuntamento aggiunto')}catch(err){toast(errMsg(err))}
+  });
+  $('#lab-form').addEventListener('submit',async function(e){e.preventDefault();
+    var o={name:$('#l-name').value.trim(),date:$('#l-date').value,result:$('#l-result').value.trim(),note:$('#l-note').value.trim(),createdAt:Date.now()};
+    if(!o.name||!o.date)return;
+    var id=S.editing.labs,old=id?S.labs.find(function(x){return x.id===id}):null;if(old&&old.createdAt)o.createdAt=old.createdAt;
+    try{await writeDoc('labs',id||null,o);setEdit('labs',null);toast(id?'Esame aggiornato':'Esame aggiunto')}catch(err){toast(errMsg(err))}
+  });
+  $('#q-form').addEventListener('submit',async function(e){e.preventDefault();
+    var t=$('#q-text').value.trim();if(!t)return;
+    var id=S.editing.questions,old=id?S.questions.find(function(x){return x.id===id}):null;
+    try{await writeDoc('questions',id||null,{text:t,done:old?!!old.done:false,createdAt:old&&old.createdAt?old.createdAt:Date.now()});setEdit('questions',null);if(id)toast('Domanda aggiornata')}catch(err){toast(errMsg(err))}
+  });
+  $('#questions').addEventListener('click',async function(e){var b=e.target.closest('[data-q]');if(!b)return;
+    var q=S.questions.find(function(x){return x.id===b.dataset.q});if(!q)return;
+    var d=rowData(q);d.done=!q.done;try{await writeDoc('questions',q.id,d)}catch(err){toast(errMsg(err))}
+  });
+  document.addEventListener('click',async function(e){
+    var b=e.target.closest('[data-del],#del-entry');if(!b)return;
+    if(!b.dataset.armed){b.dataset.armed='1';b.dataset.orig=b.textContent;b.textContent='Conferma';b.classList.add('armed');
+      setTimeout(function(){if(b.dataset.armed){delete b.dataset.armed;b.textContent=b.dataset.orig;b.classList.remove('armed')}},3000);return}
+    delete b.dataset.armed;b.classList.remove('armed');
+    try{
+      if(b.id==='del-entry'){await removeDoc('entries',S.form.date);b.textContent=b.dataset.orig;toast('Giornata eliminata');loadForm(S.form.date)}
+      else{await removeDoc(b.dataset.del,b.dataset.id);toast('Eliminato')}
+    }catch(err){toast(errMsg(err))}
+  });
+  S.editing={};
+  var EDIT={
+    appts:{form:'#appt-form',map:{'a-title':'title','a-date':'date','a-time':'time','a-note':'note'},add:'Aggiungi appuntamento'},
+    labs:{form:'#lab-form',map:{'l-name':'name','l-date':'date','l-result':'result','l-note':'note'},add:'Aggiungi esame'},
+    questions:{form:'#q-form',map:{'q-text':'text'},add:'Aggiungi'}
+  };
+  function setEdit(key,id){
+    var c=EDIT[key],f=$(c.form),btn=f.querySelector('button[type="submit"]'),cancel=f.querySelector('.cancel');
+    if(!id){S.editing[key]=null;f.reset();btn.textContent=c.add;cancel.hidden=true;return}
+    var r=S[key].find(function(x){return x.id===id});if(!r)return;
+    S.editing[key]=id;
+    Object.keys(c.map).forEach(function(i){$('#'+i).value=r[c.map[i]]||''});
+    btn.textContent='Salva modifiche';cancel.hidden=false;
+    f.scrollIntoView({behavior:'smooth',block:'center'});$('#'+Object.keys(c.map)[0]).focus();
+  }
+  Object.keys(EDIT).forEach(function(k){$(EDIT[k].form+' .cancel').addEventListener('click',function(){setEdit(k,null)})});
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-edit]');if(b)setEdit(b.dataset.edit,b.dataset.id)});
+  var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(renderTrend,150)});
+}
+
+/* ---------- avvio ---------- */
+/* ---------- sincronizzazione e copia offline ---------- */
+var LS='diario-gravidanza-v1',STANDALONE=!(window.claude&&window.claude.use);
+var KEYS=['entries','appts','labs','questions'];
+var FIELDS={
+  entries:['date','perdite','dolore','sintomi','umore','acqua','folico','sys','dia','hr','peso','temp','sonno','glic','farmaci','note','updatedAt'],
+  appts:['title','date','time','note','createdAt','updatedAt'],
+  labs:['name','date','result','note','createdAt','updatedAt'],
+  questions:['text','done','createdAt','updatedAt']
+};
+var DATE_RE=/^\d{4}-\d{2}-\d{2}$/,ID_RE=/^[A-Za-z0-9_\-.~:@+]{1,200}$/;
+function persist(){if(!S.local)return;try{localStorage.setItem(LS,JSON.stringify({start:S.start,startAt:S.startAt,entries:S.entries,appts:S.appts,labs:S.labs,questions:S.questions}))}catch(e){}}
+function loadLocal(){
+  S.local=true;var raw=null;try{raw=localStorage.getItem(LS)}catch(e){}
+  if(raw){try{var o=JSON.parse(raw);KEYS.forEach(function(k){S[k]=Array.isArray(o[k])?o[k]:[]});if(o.start)S.start=o.start;S.startAt=o.startAt||0}catch(e){}}
+  else{S.questions=[
+    {id:'q1',text:"Quanto \u00e8 grande l'area di mancato incollamento con il versamento, e come sta cambiando?",done:false,createdAt:1760300000001},
+    {id:'q2',text:'Cosa devo evitare in questo periodo (sforzi, rapporti, sport)?',done:false,createdAt:1760300000002},
+    {id:'q3',text:"Quando rifare l'ecografia di controllo?",done:false,createdAt:1760300000003},
+    {id:'q4',text:'Quale antistaminico posso prendere se sono a contatto con un gatto, e a che dose?',done:false,createdAt:1760300000004},
+    {id:'q5',text:'Cosa indica la sigla UDRC sulla prescrizione degli esami del sangue?',done:false,createdAt:1760300000005}]}
+  S.ready=true;
+}
+function exportPayload(){
+  var o={app:'diario-gravidanza',version:1,exportedAt:new Date().toISOString(),start:S.start,startAt:S.startAt};
+  KEYS.forEach(function(k){o[k]=S[k]});return JSON.stringify(o,null,2);
+}
+async function exportData(){
+  var name='diario-gravidanza-'+today()+'.json',payload=exportPayload(),dl=null;
+  try{dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){dl=null}
+  if(dl){try{await dl.save({filename:name,data:payload});toast('Copia salvata')}catch(e){if(!e||e.code!=='declined')toast('Non sono riuscita a scaricare il file')}return}
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([payload],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Copia scaricata');
+}
+var stamp=function(r){return (r&&(r.updatedAt||r.createdAt))||0};
+async function mergeData(o){
+  var n=0;
+  if(o.start&&DATE_RE.test(o.start)&&(o.startAt||0)>(S.startAt||0)){
+    var at=o.startAt;if(S.db)await S.db.doc('config/gravidanza').set({startDate:o.start,updatedAt:at});
+    S.start=o.start;S.startAt=at;n++;
+  }
+  for(var ki=0;ki<KEYS.length;ki++){
+    var key=KEYS[ki],rows=Array.isArray(o[key])?o[key]:[];
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];if(!r||typeof r!=='object'||typeof r.id!=='string'||!ID_RE.test(r.id))continue;
+      if(key==='entries'&&!DATE_RE.test(r.id))continue;
+      if((key==='appts'||key==='labs')&&!DATE_RE.test(r.date||''))continue;
+      var cur=S[key].find(function(x){return x.id===r.id});
+      if(cur&&stamp(r)<=stamp(cur))continue;
+      var d={};FIELDS[key].forEach(function(f){if(r[f]!=null)d[f]=r[f]});
+      await writeDoc(key,r.id,d,true);n++;
+    }
+  }
+  if(S.local)persist();renderHero();renderVisita();
+  return n;
+}
+function initBackup(){
+  $('#bk-export').addEventListener('click',exportData);
+  $('#bk-import').addEventListener('change',function(){
+    var inp=this,f=inp.files&&inp.files[0];if(!f)return;var r=new FileReader();
+    r.onload=async function(){
+      try{var o=JSON.parse(r.result);if(!o||o.app!=='diario-gravidanza')throw new Error('x');
+        var n=await mergeData(o);toast(n?'Sincronizzate '+n+(n===1?' voce':' voci'):'Già tutto aggiornato')}
+      catch(e){toast(e&&e.code?errMsg(e):'File non valido')}
+    };
+    r.readAsText(f);inp.value='';
+  });
+}
+
+async function connect(){
+  if(STANDALONE){setSync('ok');return}
+  var db=null;
+  try{db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){db=null}
+  S.db=db;
+  if(!db){setSync('off');$('#banner').hidden=false;return}
+  var first=true,fail=function(){setSync('err')};
+  var sub=function(key){
+    db.collection(key).onSnapshot(function(snap){
+      S[key]=snap.docs.map(function(d){return Object.assign({id:d.id},d.data())});
+      if(first){first=false;setSync('ok')}
+      onData();
+    },fail);
+  };
+  ['entries','appts','labs','questions'].forEach(sub);
+  db.doc('config/gravidanza').onSnapshot(function(s){
+    if(s.exists&&s.data().startDate){S.start=s.data().startDate;S.startAt=s.data().updatedAt||0}
+    renderHero();renderVisita();
+  },fail);
+}
+if(STANDALONE)loadLocal();
+buildControls();bind();initBackup();
+var h=(location.hash||'').slice(1);
+renderHero();loadForm(today());onData();paintControls();
+if(['andamento','agenda','visita'].indexOf(h)>=0)showTab(h);
+connect();
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+})();
+</script>
+
+</body></html>
